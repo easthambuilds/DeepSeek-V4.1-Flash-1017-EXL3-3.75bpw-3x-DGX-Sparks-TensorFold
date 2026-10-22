@@ -8,9 +8,18 @@ with LakyFx's TensorFold TP3 runtime behind an OpenAI-compatible HTTP API.
 - Every external input is pinned by commit or sha256 in `scripts/config.sh`.
 - One node (the head, rank 0) runs the scripts and the API. It drives the other two (ranks 1 and 2) over ssh.
 
-**Status: not validated end to end.**
-- `PLAN_SHA256` and `RANK_SHA256` are empty, so those two output checks are skipped.
-- The scripts are those of the [3.5 bpw recipe](https://github.com/easthambuilds/DeepSeek-V4.1-Flash-1017-EXL3-3x-DGX-Sparks-TensorFold), which passed end to end on 2026-10-21. This repository changes only the checkpoint pins, the RoPE pins and the serving defaults.
+**Status: passed end to end on 2026-10-22.** Repository at `558bf3c`, three GB10, default settings.
+- `./start.sh` ran from an empty `DATA_DIR` to a live API: setup 42 min 49 s, load 46 s.
+- The smoke test passed, as did four further requests: arithmetic, code, a tool call and prose.
+- The three rank caches it produced are byte-identical (sha256) to the hand-built caches used for the section 9 measurements.
+- `PLAN_SHA256` and `RANK_SHA256` in `scripts/config.sh` are pinned from this run. A setup that produces different hashes stops.
+- **Inputs:**
+  - The 41 checkpoint shards and DeepSeek's Engram shards 47–48 were copied onto the head from local copies before the run.
+  - Step 4 re-hashed each one against the Hub at the pinned revisions and downloaded every other file.
+  - The RoPE image was preloaded from another node (same image id).
+  - Not exercised in this run: the full ~473 GB download.
+- **Network:** the workers were addressed by their ConnectX-7 addresses. The preflight added the one missing `/32` route (`APPLY_ROUTES=1`).
+- **Lineage:** the scripts are those of the [3.5 bpw recipe](https://github.com/easthambuilds/DeepSeek-V4.1-Flash-1017-EXL3-3x-DGX-Sparks-TensorFold), which passed end to end on 2026-10-21. This repository changes only the checkpoint pins, the RoPE pins and the serving defaults.
 
 ## 1. Pinned inputs
 
@@ -87,12 +96,15 @@ Put overrides in `scripts/local.sh`; start from `scripts/local.sh.example`. It i
 | `MIN_AVAIL_GIB` | `100` | Warning threshold for `MemAvailable` before load |
 | `CUDA_LIB` | `/usr/local/cuda/lib64` | CUDA runtime libraries for the binaries |
 | `ALLOW_4K_PAGES` | `0` | `1`: skip the page-size check |
-| `PLAN_SHA256`, `RANK_SHA256` | empty | Expected plan and rank-cache hashes. Empty skips the check. |
+| `PLAN_SHA256`, `RANK_SHA256` | pinned from the 2026-10-22 run | Expected plan and rank-cache sha256. A mismatch stops the setup; empty skips the check. |
 
 **Defaults:**
-- The defaults (`POOL=3300000`, `CONTEXT=1048576`, `PARALLEL=4`; 2 to 4 sessions suggested) are a recommendation derived from the measured memory margins. They are not a measured configuration.
-- The measured configuration was `POOL=4000000`, `CONTEXT=401408`, `PARALLEL=12` (section 9).
-- On those settings the head had 0.9 GiB left after the runtime's 12.4 GiB reserve.
+- The defaults (`POOL=3300000`, `CONTEXT=1048576`, `PARALLEL=4`; 2 to 4 sessions suggested) are a recommendation derived from the memory margins measured at `POOL=4000000`.
+- **Measured at the defaults** (2026-10-22 run):
+  - load and the smoke test;
+  - `MemAvailable` after load: 13.4 GiB on the head, 15.0 / 15.0 GiB on ranks 1 / 2.
+- **Not measured at the defaults:** speed, and memory with the pool full.
+- Section 9's speed and benchmark numbers used `POOL=4000000`, `CONTEXT=401408`, `PARALLEL=12`. On those settings the head had 0.9 GiB left after the runtime's 12.4 GiB reserve.
 
 **When changes take effect:**
 - Serving settings (`HOST` through `REASONING`) apply at `./start.sh restart`.
@@ -115,17 +127,28 @@ DRY_RUN=1 ./start.sh                            # preflight only; changes nothin
 | --- | --- |
 | `DRY_RUN=1 ./start.sh` | Exit 0. The output lists rails, peer masks, GID index, master address and routes. Once set up, it also prints the three rank commands. |
 | `./start.sh` | Exit 0. The smoke-test reply contains `51`. Last line: `== <SERVED_NAME> is live on http://<host>:<PORT>/v1`. |
-| First setup | `prepare.sh` prints `plan <sha256>` and `RANK_SHA256="<r0> <r1> <r2>"`. Set these as `PLAN_SHA256` / `RANK_SHA256` in `scripts/local.sh` so later setups are checked against them. |
+| Setup outputs | `prepare.sh` checks the plan and the three rank caches against `PLAN_SHA256` / `RANK_SHA256`, then prints them (`plan <sha256>`, `RANK_SHA256="<r0> <r1> <r2>"`). |
 
 **Re-running and state:**
 - Every setup step checks its outputs and skips completed work, so re-running `./start.sh` after a failure resumes.
 - `$DATA_DIR/.prepared.partial` exists while setup is incomplete. `$DATA_DIR/.prepared` holds the stamp of a completed setup.
 
-**Durations** (3.5 bpw recipe, same scripts, 2026-10-21):
-- Downloads: ~473 GB, limited by bandwidth.
-- Runtime build and RoPE tables: ~2 min.
-- Steps 4–8 with the weights already on disk (step 4 only re-checks them against the Hub): 41 min. This checkpoint's rank caches are 6.6% larger: 91.6 GB vs 85.9 GB.
-- Model load: 62 s.
+**Durations** (2026-10-22 run: weights staged on the head beforehand, GPU clocks locked at 0–2000 MHz):
+
+| Phase | Time |
+| --- | --- |
+| 1 Preflight and topology | 3 s |
+| 2 Runtime: fetch, extract, Zig build, NCCL | 2 min 32 s |
+| 3 Kit and RoPE tables | 13 s |
+| 4 Weights: re-hash the 473 GB of staged shards against the Hub, download the other files | 2 min 33 s |
+| 5 Plan, receipt, model files | 2 min 58 s |
+| 6 Engram cuts, sparse copies, checks | 21 min 35 s |
+| 7 Rank caches: export, full re-hash, copies to ranks 1 and 2 | 11 min 46 s |
+| 8 Launcher | 3 s |
+| Checks, launch, load (46 s), smoke test | 1 min 5 s |
+| **Total, `./start.sh`** | **42 min 49 s** |
+
+Without staged weights, step 4 also downloads ~473 GB. That time depends on the head's bandwidth and is not included above.
 
 ## 6. Setup steps (`scripts/prepare.sh`)
 
@@ -219,7 +242,7 @@ Errors print as `!! <message>` and exit non-zero.
 | GSM8K / MMLU / BFCL v3 (thinking off) | 97.27% / 88.41% / 81.37% |
 | Needle, 8K–250K × 3 depths | 12/12 |
 
-The default serving settings (`POOL=3300000`, `CONTEXT=1048576`, `PARALLEL=4`) have not been measured.
+At the default serving settings (`POOL=3300000`, `CONTEXT=1048576`, `PARALLEL=4`), only load, the smoke test and memory after load have been measured (section 4).
 
 ## 10. Runtime modifications
 

@@ -40,10 +40,10 @@ ROPE_PINS="3301376 rope-plain-cos.f32=66a47d6f185bdb2962ca0ffe13952ab70409dc15ea
 # The 1017 chat template the launcher requires (LakyFx's qualified one; identical to the checkpoint's)
 CHAT_TEMPLATE_SHA256=7d1356675e429ec4a55cbcc1a6fbeb40615dbeb257aca25b8c3705a42087f33e
 
-# Expected outputs of a clean setup (the setup prints them; empty skips the check). Not recorded yet: they are pinned
-# after our first end-to-end run of this recipe.
-PLAN_SHA256=${PLAN_SHA256-}
-RANK_SHA256=${RANK_SHA256-}   # the three rank caches
+# Expected outputs of a clean setup, recorded from our end-to-end run on 2026-10-22 (the setup checks and prints them;
+# set either to empty to skip the check)
+PLAN_SHA256=${PLAN_SHA256-7c583575f56f2634e7bc148e16d494c315f31cca863af4f353c23eabae90f0cf}
+RANK_SHA256=${RANK_SHA256-3f4c89ccbcc251c8a8ec2619302d8619cb58527b340df2edb5e7d52d91ec6ceb 2b5fb3493763f4b71997ace2016c992dfdb0a24e267b4bbc228bba458b5ba55b de339fedab7a2e64e34d18ff397dcc1bfd6c6998134613644fb1d8c37ae2221a}   # the three rank caches
 
 # Where everything lives on each Spark. Head: ~760 GB at the peak of the setup (checkpoint ~270, Engram source ~203,
 # three rank caches ~92 each before ranks 1 and 2 move to their Sparks, Engram cut ~68); ~420 GB after. Others ~165 GB.
