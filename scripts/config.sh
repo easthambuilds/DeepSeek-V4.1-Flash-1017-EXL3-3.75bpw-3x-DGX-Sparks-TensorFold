@@ -2,7 +2,7 @@
 
 # The checkpoint this recipe serves, and the original weights its Engram tables come from
 QUANT_REPO=${QUANT_REPO:-easthambuilds/DeepSeek-V4.1-Flash-1017-EXL3-3.75bpw}
-QUANT_REV=${QUANT_REV:-QUANT_REV_PENDING}
+QUANT_REV=${QUANT_REV:-1285c464297bf2ddd231dba9b7df6a77105273cd}
 BASE_REPO=deepseek-ai/DeepSeek-V4.1-Flash-1017
 BASE_REV=1bae0e1088993b9b82de08f59de5be5a34e42170
 ENGRAM_FILES="model-00047-of-00048.safetensors model-00048-of-00048.safetensors model.safetensors.index.json"

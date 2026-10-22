@@ -23,7 +23,7 @@ for [TensorFold](https://github.com/ashhart/TensorFold). What is ours:
 
 | | |
 | --- | --- |
-| Checkpoint | [`easthambuilds/DeepSeek-V4.1-Flash-1017-EXL3-3.75bpw`](https://huggingface.co/easthambuilds/DeepSeek-V4.1-Flash-1017-EXL3-3.75bpw) @ `QUANT_REV_PENDING`, ~270 GB, plus DeepSeek's original shards 47–48 (Engram tables, ~203 GB) |
+| Checkpoint | [`easthambuilds/DeepSeek-V4.1-Flash-1017-EXL3-3.75bpw`](https://huggingface.co/easthambuilds/DeepSeek-V4.1-Flash-1017-EXL3-3.75bpw) @ `1285c464`, ~270 GB, plus DeepSeek's original shards 47–48 (Engram tables, ~203 GB) |
 | Runtime | [`LakyFx/deepseek-v41-flash-exl3-tp3-spark`](https://github.com/LakyFx/deepseek-v41-flash-exl3-tp3-spark) tag `v1.2.2TF` (`14a6d49`), TensorFold runtime snapshot `61357deb`, built with Zig 0.17.0 for sm_121 |
 | NCCL | 2.30.7 with the switchless patches, [`alexellis/switchless-nccl`](https://github.com/alexellis/switchless-nccl) `v0.0.1`, sha256-checked |
 | RoPE tables | the runtime's `make_rope.py` on CPU in `nvcr.io/nvidia/pytorch:26.07-py3`, cut to the pool |
