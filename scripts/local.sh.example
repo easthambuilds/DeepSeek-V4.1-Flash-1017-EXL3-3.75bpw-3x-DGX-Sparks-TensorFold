@@ -1,0 +1,19 @@
+# Copy to scripts/local.sh and fill in. Addresses below are documentation placeholders.
+
+WORKER1=user@192.0.2.2         # ssh target of rank 1 (key-based ssh from the head)
+WORKER2=user@192.0.2.3         # ssh target of rank 2
+# The cables, RoCE devices, GID indexes and routes are found by the preflight (DRY_RUN=1 ./start.sh shows them).
+
+# Optional
+# FABRIC_PEER1=192.168.200.4   # copy the setup's files to rank 1 over this address (its end of the cable to the head)
+# FABRIC_PEER2=192.168.210.3   #   ... and to rank 2; default: over WORKER1 / WORKER2
+# APPLY_ROUTES=1               # let the preflight add missing /32 routes with sudo (until reboot; README, Requirements)
+# DATA_DIR=/data/dsv41-1017-tp3b  # default ~/.cache/dsv41-1017-tp3b, the same place on each Spark
+# HOST=0.0.0.0                 # listen beyond localhost (set API_KEY_FILE too)
+# PORT=8888
+# API_KEY_FILE=$HOME/.config/dsv41-1017-tp3/api-key
+# CONTEXT=401408               # per-request window (default 1048576; the pool is shared)
+# POOL=3300000                 # shared KV tokens (the default); more costs memory on the head
+# PARALLEL=2                   # default 4
+# REASONING=max                # default: the server's own
+# SERVED_NAME=deepseek-v4.1-flash
